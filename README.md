@@ -57,3 +57,8 @@ There are two slave servers in this system, both having similar functionalities 
 This setup could be useful for scenarios where files need to be processed in parallel, reducing the time for processing large files by utilizing multiple machines. Examples include distributed video processing, data analysis, or any task that benefits from parallel processing to speed up handling large datasets.
 
 This explanation outlines a robust example of how distributed computing and networking concepts are implemented using Go, demonstrating both file handling and network communications effectively. The system architecture facilitates practical learning and exploration of concurrent programming and network interactions in distributed systems.
+
+## Developers
+- Islam Abd_Elhady Hassanein
+- Enas Ragab Abdel_Latif
+- Mariam Tarek Saad
