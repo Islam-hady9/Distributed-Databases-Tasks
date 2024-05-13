@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Connect to the master
-	conn, _ := net.Dial("tcp", "172.20.10.4:50000")
+	conn, _ := net.Dial("tcp", "Masterlocalhost:50000")
 	defer conn.Close()
 
 	// Read user input (send or receive)
@@ -29,15 +29,15 @@ func main() {
 		fmt.Println("Sent file to master")
 	} else if command == "receive" {
 		// Receive the combined file from the master
-	combinedFile, err := os.Create("received_combinedfile.txt")
-	if err != nil {
-		fmt.Println("Error creating received combined file:", err)
-		return
-	}
-	defer combinedFile.Close()
+		combinedFile, err := os.Create("received_combinedfile.txt")
+		if err != nil {
+			fmt.Println("Error creating received combined file:", err)
+			return
+		}
+		defer combinedFile.Close()
 
-	io.Copy(combinedFile, conn)
-	fmt.Println("Received combined file from master")
-}
+		io.Copy(combinedFile, conn)
+		fmt.Println("Received combined file from master")
+	}
 
 }

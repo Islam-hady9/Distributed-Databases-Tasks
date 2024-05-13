@@ -1,104 +1,162 @@
-// Master.go
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
-	fmt.Println("Starting the server ...")
-	// Listen on a port
-	ln, _ := net.Listen("tcp", ":50000")
+	fmt.Println("Starting the server...")
+	ln, err := net.Listen("tcp", ":50000")
+	if err != nil {
+		log.Fatal("Error listening:", err)
+	}
 	defer ln.Close()
 
-	// Accept connection from client
-	conn, _ := ln.Accept()
+	conn, err := ln.Accept()
+	if err != nil {
+		log.Fatal("Error accepting connection:", err)
+	}
 	defer conn.Close()
 	fmt.Println("Connected to client")
 
-	// Receive file from client
-	newFile, _ := os.Create("newfile.txt")
-	io.Copy(newFile, conn)
-	newFile.Close()
-	fmt.Println("Received file from client")
+	/************SEND OR RECIEVE***************/
+	// Read user input (send or receive)
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter 'send' or 'receive': ")
+	command, _ := reader.ReadString('\n')
+	command = strings.TrimSpace(command)
 
-	// Divide the file into two parts
-	file, _ := os.Open("newfile.txt")
-	fileInfo, _ := file.Stat()
-	fileSize := fileInfo.Size()
-	partSize := fileSize / 2
+	if command == "send" {
+		// Assuming you are receiving processed files back from slaves before combining them
+		combineFiles("combinedfile.txt", "part1.txt", "part2.txt")
+		sendFileToClient("combinedfile.txt", conn)
+		fmt.Println("Sent combined file to client")
+		conn.Close()
+		fmt.Println("Connection closed")
+	} else if command == "receive" {
+		newFile, err := os.Create("newfile.txt")
+		if err != nil {
+			log.Fatal("Error creating new file:", err)
+		}
+		defer newFile.Close()
 
-	// Create two temporary files for the parts
-	part1File, _ := os.Create("part1.txt")
-	part2File, _ := os.Create("part2.txt")
+		_, err = io.Copy(newFile, conn)
+		if err != nil {
+			log.Fatal("Error receiving file from client:", err)
+		}
+		fmt.Println("Received file from client")
 
-	// Copy the first part
-	io.CopyN(part1File, file, partSize)
-	part1File.Close()
+		file, err := os.Open("newfile.txt")
+		if err != nil {
+			log.Fatal("Error opening new file:", err)
+		}
+		defer file.Close()
 
-	// Copy the second part
-	io.Copy(part2File, file)
-	part2File.Close()
-	fmt.Println("Divided file into two parts")
+		fileInfo, err := file.Stat()
+		if err != nil {
+			log.Fatal("Error getting file info:", err)
+		}
 
-	// Distribute parts to slaves (simplified example)
-	slave1Conn, _ := net.Dial("tcp", "localhost:50001")
-	slave2Conn, _ := net.Dial("tcp", "localhost:50002")
+		partSize := fileInfo.Size() / 2
+		part1File, err := os.Create("part1.txt")
+		if err != nil {
+			log.Fatal("Error creating part1 file:", err)
+		}
+		defer part1File.Close()
 
-	// Send part1 to slave1
-	part1File.Seek(0, 0)
-	io.Copy(slave1Conn, part1File)
-	slave1Conn.Close()
+		_, err = io.CopyN(part1File, file, partSize)
+		if err != nil && err != io.EOF {
+			log.Fatal("Error copying first part:", err)
+		}
 
-	// Send part2 to slave2
-	part2File.Seek(0, 0)
-	io.Copy(slave2Conn, part2File)
-	slave2Conn.Close()
-	
+		part2File, err := os.Create("part2.txt")
+		if err != nil {
+			log.Fatal("Error creating part2 file:", err)
+		}
+		defer part2File.Close()
 
-	// Combine both parts into a single file
-	combinedFile, err := os.Create("combinedfile.txt")
+		_, err = io.Copy(part2File, file)
+		if err != nil {
+			log.Fatal("Error copying second part:", err)
+		}
+		fmt.Println("Divided file into two parts")
+		// Assume both slaves are on the same machine, different ports
+		sendFileToSlave("part1.txt", "slave1_localhost:50001")
+		sendFileToSlave("part2.txt", "slave2_localhost:50002")
+	}
+
+	/**********************************/
+
+	/************************************/
+
+}
+
+func sendFileToSlave(filename string, address string) {
+	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		fmt.Println("Error creating combined file:", err)
-		return
+		log.Fatal("Error dialing slave:", err)
+	}
+	defer conn.Close()
+
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal("Error opening part file:", err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(conn, file)
+	if err != nil {
+		log.Fatal("Error sending file to slave:", err)
+	}
+	fmt.Printf("File %s sent to slave at %s\n", filename, address)
+}
+
+func combineFiles(combinedFilename string, part1Filename string, part2Filename string) {
+	combinedFile, err := os.Create(combinedFilename)
+	if err != nil {
+		log.Fatal("Error creating combined file:", err)
 	}
 	defer combinedFile.Close()
 
-	// Read part1 and part2
-	part1File, err = os.Open("part1.txt")
+	part1File, err := os.Open(part1Filename)
 	if err != nil {
-		fmt.Println("Error opening part1 file:", err)
-		return
+		log.Fatal("Error opening part1 file:", err)
 	}
 	defer part1File.Close()
 
-	part2File, err = os.Open("part2.txt")
+	part2File, err := os.Open(part2Filename)
 	if err != nil {
-		fmt.Println("Error opening part2 file:", err)
-		return
+		log.Fatal("Error opening part2 file:", err)
 	}
 	defer part2File.Close()
 
-	// Copy both parts to the combined file
-	io.Copy(combinedFile, part1File)
-	io.Copy(combinedFile, part2File)
+	_, err = io.Copy(combinedFile, part1File)
+	if err != nil {
+		log.Fatal("Error combining part1:", err)
+	}
+
+	_, err = io.Copy(combinedFile, part2File)
+	if err != nil {
+		log.Fatal("Error combining part2:", err)
+	}
 	fmt.Println("Combined both parts into a single file")
+}
 
-	// Print the size of the combined file
-	combinedFile.Seek(0, 0)
-	combinedFileSize, _ := combinedFile.Stat()
-	fmt.Printf("Size of combined file: %d bytes\n", combinedFileSize.Size())
+func sendFileToClient(filename string, conn net.Conn) {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal("Error opening combined file:", err)
+	}
+	defer file.Close()
 
-	// Send the combined file to the client
-	combinedFile.Seek(0, 0)
-	io.Copy(conn, combinedFile)
-	fmt.Println("Sent combined file to client")
-
-	// Close the connection after sending the file
-	conn.Close()
-	fmt.Println("Connection closed")
-
+	_, err = io.Copy(conn, file)
+	if err != nil {
+		log.Fatal("Error sending combined file to client:", err)
+	}
 }
