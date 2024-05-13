@@ -87,8 +87,8 @@ func main() {
 		}
 		fmt.Println("Divided file into two parts")
 		// Assume both slaves are on the same machine, different ports
-		sendFileToSlave("part1.txt", "slave1_localhost:50001")
-		sendFileToSlave("part2.txt", "slave2_localhost:50002")
+		sendFileToSlave("part1.txt", "slave1LocalHost:50001")
+		sendFileToSlave("part2.txt", "slave2LocalHost:50002")
 	}
 
 	/**********************************/

@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Connect to the master
-	conn, _ := net.Dial("tcp", "Masterlocalhost:50000")
+	conn, _ := net.Dial("tcp", "masterLocalHost:50000")
 	defer conn.Close()
 
 	// Read user input (send or receive)
