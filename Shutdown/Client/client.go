@@ -78,7 +78,7 @@ func isLinux() bool {
 }
 
 func main() {
-	conn, err := net.Dial("tcp", "serverlocalhost:8000")
+	conn, err := net.Dial("tcp", "serverLocalHost:8000")
 	if nil != err {
 		log.Println(err)
 		return

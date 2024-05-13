@@ -14,7 +14,7 @@ var (
 
 func main() {
 	// Listen for incoming connections
-	listener, err := net.Listen("tcp", "serverlocalhost:8000")
+	listener, err := net.Listen("tcp", "serverLocalHost:8000")
 	if err != nil {
 		log.Fatal(err)
 	}
